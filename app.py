@@ -32,13 +32,17 @@ def convert_pdf_to_images(pdf_file):
 def analyze_page(image_base64):
     """Analyze a single page using the vision model"""
     response = client.chat.completions.create(
-        model='Llama-3.2-90B-Vision-Instruct',
+        model='Llama-3.2-11B-Vision-Instruct',
         messages=[{
             "role": "user",
             "content": [{
                 "type": "text",
                 "text": """You are an AI contract analysis expert. Please carefully read the entire contract page provided.
-                           Identify and explain briefly the important clauses, terms, and information that should not be missed."""
+                           Identify and explain briefly the important clauses, terms, and information that should not be missed.
+                           Describe the entire page as a single long in a explanatory way as if you are a legal lawyer of the user. 
+                           Your explanation should contain what is there written in the contarct and what user will by agreeing upon by signing the contract.
+                           It should also include the implications of what's written there, like is there a chance of these statements being
+                           twisted or modified, just like you  are a legal lawyer of the user.Your response should be in a simple explanatory paragraph that is not too long and not to short as well."""
             }, {
                 "type": "image_url",
                 "image_url": {"url": f"data:image/png;base64,{image_base64}"}
@@ -86,7 +90,7 @@ The email should:
 5. Maintain a constructive and professional tone"""
 
     response = client.chat.completions.create(
-        model='llama3.1-405B',
+        model='Meta-Llama-3.1-70B-Instruct',
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1
     )

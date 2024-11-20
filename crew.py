@@ -22,44 +22,31 @@ llm = LLM(
 )
 
 # Defining agents
-legal_analyzer = Agent(
-    role="Legal Domain Analyst",
-    goal="Verify if contract clauses are within legal boundaries",
-    backstory="An expert legal researcher who thoroughly investigates the legal standing of contract clauses",
+legal_analyser_and_reviewer = Agent(
+    role="Legal Domain Analyst and Contract Reviewer",
+    goal="Verify if contract clauses are within legal boundaries and evaluate contract clauses for potential risks and implications",
+    backstory="An expert legal researcher who thoroughly investigates the legal standing of contract clauses and provides comprehensive analysis of clause by compairing with standard clause and recommends counters to be made.",
     tools=[search_tool],
     verbose=True,
     llm=llm
 )
 
-contract_reviewer = Agent(
-    role="Contract Clause Reviewer",
-    goal="Evaluate contract clauses for potential risks and advantages",
-    backstory="A seasoned contract reviewer who provides comprehensive analysis of clause implications",
-    tools=[search_tool],
-    verbose=True,
-    llm=llm
-)
 
 def manage_crew_for_clause(clause):
     """Function to manage tasks and crew for each clause"""
     # defining tasks
 
-    legal_task = Task(
-        description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues.",
-        expected_output="Comprehensive legal analysis of the clause, including its compliance with legal standards",
-        agent=legal_analyzer
+    legal_analysis_and_review_task = Task(
+        description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues. Assess its benefits, risks, and recommend potential counters or modifications.",
+        expected_output="Detailed explanation of legal analysis of the clause and recommended actions for counters or modifications in a single paragraph.",
+        agent=legal_analyser_and_reviewer
     )
 
-    review_task = Task(
-        description=f"Review the contract clause: {clause}. Assess its benefits, risks, and recommend potential counters or modifications.",
-        expected_output="Detailed review with advantages, disadvantages, and recommended actions",
-        agent=contract_reviewer
-    )
 
     # creating crew 
     crew = Crew(
-        agents=[legal_analyzer, contract_reviewer],
-        tasks=[legal_task, review_task],
+        agents=[legal_analyser_and_reviewer],
+        tasks=[legal_analysis_and_review_task],
         process=Process.sequential
     )
 
