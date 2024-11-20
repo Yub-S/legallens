@@ -3,6 +3,7 @@ from crewai_tools import SerperDevTool
 from langchain_community.llms import Ollama
 import os
 import json
+import time
 from dotenv import load_dotenv
 from crewai import LLM
 
@@ -33,22 +34,35 @@ legal_analyser_and_reviewer = Agent(
 
 
 def manage_crew_for_clause(clause):
-    """Function to manage tasks and crew for each clause"""
-    # defining tasks
 
-    legal_analysis_and_review_task = Task(
-        description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues. Assess its benefits, risks, and recommend potential counters or modifications.",
-        expected_output="concise explanation of legal analysis (not too long) of the clause and recommended actions in points for counters or modifications. make your response as concise as possible.",
-        agent=legal_analyser_and_reviewer
-    )
+    """Function to manage tasks and crew for each clause with retry mechanism for any error."""
+    max_retries = 5  # Maximum number of retries defined for any sort of error 
+    retries = 0
 
+    while retries < max_retries:
+        try:
+            # Defining tasks
+            legal_analysis_and_review_task = Task(
+                description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues. Assess its benefits, risks, and recommend potential counters or modifications.",
+                expected_output="Concise explanation of legal analysis (not too long) of the clause and recommended actions in points for counters or modifications. Make your response as concise as possible.",
+                agent=legal_analyser_and_reviewer
+            )
 
-    # creating crew 
-    crew = Crew(
-        agents=[legal_analyser_and_reviewer],
-        tasks=[legal_analysis_and_review_task],
-        process=Process.sequential
-    )
+            # Creating crew
+            crew = Crew(
+                agents=[legal_analyser_and_reviewer],
+                tasks=[legal_analysis_and_review_task],
+                process=Process.sequential
+            )
 
-    crew_output = crew.kickoff()
-    return crew_output
+            # Kicking off the process
+            crew_output = crew.kickoff()
+            return crew_output  # Return the result if successful
+
+        except Exception as e:
+            retries += 1
+            if retries < max_retries:
+                time.sleep(2)  # Wait for 2 seconds before retrying to handle the rate limit error
+            else:
+                raise RuntimeError("Exceeded maximum retries due to recurring errors") from e
+
