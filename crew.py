@@ -25,7 +25,7 @@ llm = LLM(
 legal_analyser_and_reviewer = Agent(
     role="Legal Domain Analyst and Contract Reviewer",
     goal="Verify if contract clauses are within legal boundaries and evaluate contract clauses for potential risks and implications",
-    backstory="An expert legal researcher who thoroughly investigates the legal standing of contract clauses and provides comprehensive analysis of clause by compairing with standard clause and recommends counters to be made.",
+    backstory="An expert legal researcher who thoroughly investigates the legal standing of contract clauses and recommends counters to be made.You are known for your concise and clear responses.",
     tools=[search_tool],
     verbose=True,
     llm=llm
@@ -38,7 +38,7 @@ def manage_crew_for_clause(clause):
 
     legal_analysis_and_review_task = Task(
         description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues. Assess its benefits, risks, and recommend potential counters or modifications.",
-        expected_output="Detailed explanation of legal analysis of the clause and recommended actions for counters or modifications in a single paragraph.",
+        expected_output="concise explanation of legal analysis (not too long) of the clause and recommended actions in points for counters or modifications. make your response as concise as possible.",
         agent=legal_analyser_and_reviewer
     )
 
