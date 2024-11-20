@@ -53,16 +53,20 @@ def extract_contract_content(images):
         } for img in images
     ]
 
-    vision_prompt = """You are a meticulous contract reviewer.Your job is to analyze the user's contract. Extract ALL important points, terms, conditions, and obligations that must not be missed. 
-    Include specific numbers, dates, and key details. 
-    Pay special attention to financial terms, deadlines, obligations, responsibilities, limitations, restrictions, and legal requirements.
-    
-    You need to provide the full text of the important sections and clauses.Nothing should be missed.
-    The important clauses should have full text of what's written in the contract for further analysis."""
+    vision_prompt = """You are a highly capable contract analyzer. Your role is to help users quickly analyze lengthy contracts, which otherwise would take hours. Your responsibilities are:
+
+1. Carefully read each clause or term in the contract.
+2. If the terms or conditions are general or straightforward, summarize them while maintaining their technicality and meaning.
+3. If the terms, conditions, clauses, or obligations are advanced, complex, or crucial (e.g., legal or financial terms with significant implications), you must extract the exact full text without summarizing or omitting any part. The user must not miss these critical details, as further analysis will depend on your output.
+4. Use a structured format with appropriate titles for each clause, making it easier for the next system or agent to analyze further.
+5. Always prioritize accuracy, ensuring no important detail is left out.
+
+Provide your response as normal text with clear titles and subheadings for readability. Be precise and meticulous in distinguishing between general terms and critical clauses.
+"""
 
     try:
         response = client.chat.completions.create(
-            model='Llama-3.2-90B-Vision-Instruct',
+            model='Llama-3.2-11B-Vision-Instruct',
             messages=[{
                 "role": "user",
                 "content": [
@@ -78,16 +82,13 @@ def extract_contract_content(images):
         return None
 
 def analyze_contract_content(contract_text):
-    analysis_prompt = f"""You are an expert contract analyser. Analyze this contract content and structure it into clear, detailed clauses:
+    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause with the following responsibilities:
 
-{contract_text}
+1. **Explain Clearly:** Break down each clause in plain, easy-to-understand language. Ensure the user understands what is written and its implications. 
+2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
+3. **Handle General Clauses Efficiently:** For general clauses or terms that do not pose significant risks or complexities, you may merge similar clauses and provide a concise explanation. Reassure the user if there is nothing to worry about in these sections.
+4. **Prioritize User Understanding:** Your primary goal is to make the contract as clear and accessible as possible for the user. Avoid legal jargon where unnecessary but retain technical accuracy.
 
-For each clause, if the clauses are small and similar and not too important you can merge them into a single one as well.
-1. Provide a clear title 
-2. Give a detailed explanation about what's mentioned in the contract and what does that mean and what do they imply. 
-   - The exact terms stated
-   - A clear explanation in plain language
-explain as if you are the user's person contract analysing lawyer.
 Format as JSON array:
 [
     {{
@@ -95,7 +96,10 @@ Format as JSON array:
         "description": "Explanation"
     }}
 ]
-provide only the json output nothing else. no any other test."""
+provide only the json output nothing else. no any other test.
+
+   here is the contract :
+   {contract_text}"""
 
     try:
         response = client.chat.completions.create(
