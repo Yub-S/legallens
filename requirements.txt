@@ -4,5 +4,4 @@ PyMuPDF
 Pillow
 python-dotenv
 crewai[tools]
-chromadb
-pysqlite3-binary
+chromadb==0.5.20
