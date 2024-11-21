@@ -9,7 +9,7 @@ from PIL import Image
 from dotenv import load_dotenv
 import os
 import time
-from crew import manage_crew_for_clause
+import crew
 
 load_dotenv()
 
@@ -243,7 +243,7 @@ def main():
 
             if 'implications' not in st.session_state[clause_id]:
                 with st.spinner("Analyzing implications..."):
-                    analysis = manage_crew_for_clause(clause['description'])
+                    analysis = crew.manage_crew_for_clause(clause['description'])
                     st.session_state[clause_id]['implications'] = analysis.raw
 
             # Display the implications
