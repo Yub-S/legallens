@@ -1,4 +1,4 @@
-Python 3.12.4
+Python-3.12.4
 streamlit
 openai
 PyMuPDF
