@@ -3,5 +3,4 @@ openai
 PyMuPDF
 Pillow
 python-dotenv
-crewai[tools]
-chromadb==0.5.20
+crewai-tools
