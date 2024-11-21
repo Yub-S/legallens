@@ -60,6 +60,8 @@ def extract_contract_content(image):
 4. Use a structured format with appropriate titles for each clause, making it easier for the next system or agent to analyze further.
 5. Always prioritize accuracy, ensuring no important detail is left out.
 
+never try to miss anything. because each detail matters.
+
 Provide your response as normal text with clear titles and subheadings for readability. Be precise and meticulous in distinguishing between general terms and critical clauses.
 """
 
@@ -89,24 +91,39 @@ def analyze_contract_content(contract_text):
     max_retries = 5  # Maximum number of retries defined for any sort of error
     retries = 0
 
-    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause that includes the following considerations:
+    analysis_prompt =  f"""
+You are a highly skilled legal expert analyzing a contract. Your role is to provide detailed explanations of each clause to ensure the user fully understands their rights, obligations, and potential risks. Follow these instructions:
 
-        1. **Explain Clearly:** Break down each clause in plain, easy-to-understand language. Ensure the user understands what is written and its implications.
-        2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications. Explain such clauses in detail. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
-        3. **Handle General Clauses Efficiently:** For general clauses or terms that do not pose significant risks or complexities, you may merge similar clauses and provide a concise explanation. Reassure the user if there is nothing to worry about in these sections.
-        4. **Prioritize User Understanding:** Your primary goal is to make the contract as clear and accessible as possible for the user. Avoid legal jargon where unnecessary but retain technical accuracy.
+1. **Clause Identification**: Break down the contract into individual clauses. For each clause, provide a clear and detailed explanation in plain language, keeping legal accuracy.
 
-        Format as JSON array:
-        [
-            {{
-                "clause_title": "Title",
-                "description": "Detailed explanation about the clause with accurate technicality"
-            }}
-        ]
-        Provide only the JSON output and nothing else.
+2. **Highlight Critical Clauses**: Pay special attention to clauses that:
+   - Pose potential legal or financial risks (e.g., indemnity, liability, exclusivity, termination conditions).
+   - May have long-term consequences (e.g., renewal, non-compete, intellectual property).
+   - Could be subject to varying interpretations. 
+   
+   For these critical clauses:
+   - Provide an in-depth explanation of their potential implications.
+   - Highlight why they are important and what the user needs to be cautious about.
 
-        Here is the contract:
-        {contract_text}"""
+3. **General Clauses**: For clauses that are standard or non-critical, provide concise explanations. Merge similar clauses where appropriate and assure the user when no significant risk is involved.
+
+4. **Implications and Examples**: When explaining critical clauses, use real-world examples or scenarios to help the user understand potential outcomes. Describe how a clause might be enforced and what it could mean for the user in practical terms.
+
+5. **Plain Language**: Ensure that all explanations are written in simple, clear language. Avoid legal jargon unless necessary, and when it is necessary, provide explanations for the terminology used.
+
+provide upto 4 max clauses , that should encorporate this entire contract part. you can merge similar generic clauses together for this but explain clearly. Never miss anything because everything matters. try to provide details of what's mentioned in the contract.
+
+Format as JSON array:
+[
+    {{
+        "clause_title": "Title",
+        "description": "Detailed explanation about the clause with accurate technicality"
+    }}
+]
+Provide only the JSON output and nothing else.
+
+Here is the contract:
+{contract_text}"""
 
     while retries < max_retries:
         try:
@@ -124,10 +141,10 @@ def analyze_contract_content(contract_text):
                 st.error("Failed to analyze contract content after multiple retries.")
                 return []
 
-def generate_email(clauses,responses):
+def generate_email(clauses, responses):
     if not responses or not clauses:
         return ""
-    
+
     decisions = []
     for clause in clauses:
         clause_id = str(hash(clause['clause_title']))
@@ -145,10 +162,10 @@ def generate_email(clauses,responses):
 
 Include:
 1. Professional introduction
-2. detail on which  clauses are accepted. no need of any reason.
-3. detail on which of the clauses are countered. and the counter being the counter proposal for that clause.explain the counter proposal.
-4. detail on Rejected terms and clauses. 
-5. Next steps"""
+2. Detail on which clauses are accepted (no need for explanation).
+3. Detail on which clauses are countered, and explain the counter proposal.
+4. Detail on rejected clauses.
+5. Next steps."""
 
     try:
         response = client.chat.completions.create(
@@ -193,7 +210,6 @@ def main():
                         content = extract_contract_content(img)
                         if content:
                             contract_text += "\n" + content
-
                     if contract_text:
                         clauses = analyze_contract_content(contract_text)
                         st.session_state.clauses.extend(clauses)
@@ -230,19 +246,20 @@ def main():
                 response_type = st.radio(
                     "Your Decision",
                     ["Accept", "Reject", "Counter"],
-                    key=f"response_{clause_id}",
-                    on_change=update_response,
-                    args=(clause_id, st.session_state.get(f"response_{clause_id}", "Accept"))
+                    key=f"response_{clause_id}_{idx}",  # Ensure uniqueness
                 )
+                # Update the session state based on user selection
+                update_response(clause_id, response_type)
 
             with col2:
                 if response_type == "Counter":
                     counter_text = st.text_area(
                         "Counter Proposal",
-                        key=f"counter_{clause_id}",
-                        on_change=update_response,
-                        args=(clause_id, "Counter", st.session_state.get(f"counter_{clause_id}", ""))
+                        key=f"counter_{clause_id}_{idx}",
+                        value=st.session_state['responses'].get(clause_id, {}).get('counter_text', '')
                     )
+                    # Update the session state when counter proposal is entered
+                    update_response(clause_id, response_type, counter_text)
 
             st.markdown("---")
 
