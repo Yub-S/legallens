@@ -3,4 +3,5 @@ openai
 PyMuPDF
 Pillow
 python-dotenv
+crewai
 crewai-tools
