@@ -163,10 +163,12 @@ def generate_email(clauses, responses):
 
 Include:
 1. Professional introduction
-2. Detail on which clauses are accepted (no need for much explanation ).
+2. Detail on which clauses are accepted (a small relevant explanation ).
 3. Detail on which clauses are countered, and explain the counter proposal.
 4. Detail on rejected clauses.
-5. Next steps."""
+5. Next steps.
+
+respond in a simple text format."""
 
     try:
         response = client.chat.completions.create(
@@ -284,8 +286,7 @@ def main():
 
             # new project
             if st.button("New Project / New Contract"):
-                st.session_state.clear()  
-                st.session_state.pop("uploaded_file", None)  
+                st.session_state.clear()    
                 st.rerun()  
 
 

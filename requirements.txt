@@ -1,0 +1,6 @@
+streamlit
+openai
+PyMuPDF
+Pillow
+python-dotenv
+crewai[tools]
