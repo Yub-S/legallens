@@ -4,3 +4,4 @@ PyMuPDF
 Pillow
 python-dotenv
 crewai[tools]
+pysqlite3-binary
