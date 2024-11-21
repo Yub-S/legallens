@@ -112,7 +112,7 @@ You are a highly skilled legal expert analyzing a contract. Your role is to prov
 
 provide upto 4 max clauses (i.e 1-4) , that should encorporate this entire contract part. you can merge similar generic clauses together for this but explain clearly.
 
-Never miss anything because everything matters. try to explain the clauses in detail so user can understand clearly what's mentioned in the contract.
+Never miss anything because everything matters. try to explain the clauses in detail like this (it's mentioned that you .........) so user can understand clearly what's mentioned in the contract.
 
 Format as JSON array:
 [
@@ -129,7 +129,7 @@ Here is the contract:
     while retries < max_retries:
         try:
             response = client.chat.completions.create(
-                model='Meta-Llama-3.1-70B-Instruct',
+                model='Meta-Llama-3.1-405B-Instruct',
                 messages=[{"role": "user", "content": analysis_prompt}],
                 temperature=0.1
             )
@@ -212,8 +212,13 @@ def main():
                         if content:
                             contract_text += "\n" + content
                     if contract_text:
-                        clauses = analyze_contract_content(contract_text)
-                        st.session_state.clauses.extend(clauses)
+                        new_clauses = analyze_contract_content(contract_text)
+
+                        # Check for duplicates and add only new clauses
+                        for new_clause in new_clauses:
+                            existing_titles = [clause['clause_title'] for clause in st.session_state.clauses]
+                            if new_clause['clause_title'] not in existing_titles:
+                                st.session_state.clauses.append(new_clause)
 
                     start += batch_size - overlap
 
@@ -286,6 +291,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
