@@ -36,7 +36,7 @@ legal_analyser_and_reviewer = Agent(
 def manage_crew_for_clause(clause):
 
     """Function to manage tasks and crew for each clause with retry mechanism for any error."""
-    max_retries = 5  # Maximum number of retries defined for any sort of error 
+    max_retries = 20  # Maximum number of retries defined for any sort of error 
     retries = 0
 
     while retries < max_retries:
@@ -44,7 +44,7 @@ def manage_crew_for_clause(clause):
             # Defining tasks
             legal_analysis_and_review_task = Task(
                 description=f"Analyze the legal domain of the following contract clause: {clause}. Determine its legal standing and any potential legal issues. Assess its benefits, risks, and recommend potential counters or modifications.",
-                expected_output="Concise explanation of legal analysis (not too long) of the clause and recommended actions in points for counters or modifications. Make your response as concise as possible.",
+                expected_output="Concise explanation of legal analysis (not too long) of the clause and recommended actions in points for counters or modifications(top 3 most important recommendation or counters.). Make your response as concise as possible.",
                 agent=legal_analyser_and_reviewer
             )
 

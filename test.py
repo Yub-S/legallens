@@ -82,10 +82,10 @@ Provide your response as normal text with clear titles and subheadings for reada
         return None
 
 def analyze_contract_content(contract_text):
-    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause with the following responsibilities:
+    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause that includes the following considerations:
 
 1. **Explain Clearly:** Break down each clause in plain, easy-to-understand language. Ensure the user understands what is written and its implications. 
-2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
+2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications.Explain such clauses in detail. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
 3. **Handle General Clauses Efficiently:** For general clauses or terms that do not pose significant risks or complexities, you may merge similar clauses and provide a concise explanation. Reassure the user if there is nothing to worry about in these sections.
 4. **Prioritize User Understanding:** Your primary goal is to make the contract as clear and accessible as possible for the user. Avoid legal jargon where unnecessary but retain technical accuracy.
 
@@ -93,7 +93,7 @@ Format as JSON array:
 [
     {{
         "clause_title": "Title",
-        "description": "Explanation"
+        "description": "detailed Explanation about the clause with accurate technicality"
     }}
 ]
 provide only the json output nothing else. no any other test.
@@ -115,7 +115,7 @@ provide only the json output nothing else. no any other test.
 def generate_email(clauses,responses):
     if not responses or not clauses:
         return ""
-
+# {json.dumps(decisions, indent=2)}
     decisions = []
     for clause in clauses:
         clause_id = str(hash(clause['clause_title']))
@@ -129,18 +129,18 @@ def generate_email(clauses,responses):
             decisions.append(decision)
 
     prompt = f"""Generate a formal contract review email based on these decisions:
-{json.dumps(decisions, indent=2)}
+    {decisions}
 
 Include:
 1. Professional introduction
-2. Accepted terms
-3. Terms requiring modification with counter-proposals
-4. Rejected terms
+2. detail on which  clauses are accepted. no need of any reason.
+3. detail on which of the clauses are countered. and the counter being the counter proposal for that clause.explain the counter proposal.
+4. detail on Rejected terms and clauses. 
 5. Next steps"""
 
     try:
         response = client.chat.completions.create(
-            model='Meta-Llama-3.1-70B-Instruct',
+            model='Meta-Llama-3.1-405B-Instruct',
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1
         )
@@ -177,6 +177,7 @@ def main():
 
     # Display clauses and analysis
     if st.session_state.processing_complete:
+        st.write(contract_text)
         for idx, clause in enumerate(st.session_state.clauses):
             clause_id = str(hash(clause['clause_title']))
 

@@ -8,6 +8,7 @@ from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
 import os
+import time
 from crew import manage_crew_for_clause
 
 load_dotenv()
@@ -23,6 +24,8 @@ if 'clauses' not in st.session_state:
     st.session_state.clauses = []
 if 'show_email' not in st.session_state:
     st.session_state.show_email = False
+if 'contract_text' not in st.session_state:
+    st.session_state.contract_text=None
 
 api_key = os.environ.get("SAMBANOVA_API_KEY")
 base_url = "https://api.sambanova.ai/v1"
@@ -45,13 +48,9 @@ def convert_pdf_to_images(pdf_file):
         st.error("Error processing PDF. Please ensure the file is not corrupted.")
         return None
 
-def extract_contract_content(images):
-    image_contents = [
-        {
-            "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{img}"}
-        } for img in images
-    ]
+def extract_contract_content(image):
+    max_retries = 5  # Maximum number of retries defined for any sort of error 
+    retries = 0
 
     vision_prompt = """You are a highly capable contract analyzer. Your role is to help users quickly analyze lengthy contracts, which otherwise would take hours. Your responsibilities are:
 
@@ -64,58 +63,71 @@ def extract_contract_content(images):
 Provide your response as normal text with clear titles and subheadings for readability. Be precise and meticulous in distinguishing between general terms and critical clauses.
 """
 
-    try:
-        response = client.chat.completions.create(
-            model='Llama-3.2-11B-Vision-Instruct',
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": vision_prompt},
-                    *image_contents
-                ]
-            }],
-            temperature=0.1
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        st.error("Failed to extract contract content.")
-        return None
+    while retries < max_retries:
+        try:
+            response = client.chat.completions.create(
+                model='Llama-3.2-11B-Vision-Instruct',
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": vision_prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image}"}}
+                    ]
+                }],
+                temperature=0.1
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            retries += 1
+            if retries < max_retries:
+                time.sleep(10)  # Wait before retrying
+            else:
+                st.error("Failed to extract contract content after multiple retries.")
+                return None
 
 def analyze_contract_content(contract_text):
-    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause with the following responsibilities:
+    max_retries = 5  # Maximum number of retries defined for any sort of error
+    retries = 0
 
-1. **Explain Clearly:** Break down each clause in plain, easy-to-understand language. Ensure the user understands what is written and its implications. 
-2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
-3. **Handle General Clauses Efficiently:** For general clauses or terms that do not pose significant risks or complexities, you may merge similar clauses and provide a concise explanation. Reassure the user if there is nothing to worry about in these sections.
-4. **Prioritize User Understanding:** Your primary goal is to make the contract as clear and accessible as possible for the user. Avoid legal jargon where unnecessary but retain technical accuracy.
+    analysis_prompt = f"""You are an expert legal analyst acting as the user's personal legal lawyer. Your role is to analyze the user's contract and provide clear explanations of each clause that includes the following considerations:
 
-Format as JSON array:
-[
-    {{
-        "clause_title": "Title",
-        "description": "Explanation"
-    }}
-]
-provide only the json output nothing else. no any other test.
+        1. **Explain Clearly:** Break down each clause in plain, easy-to-understand language. Ensure the user understands what is written and its implications.
+        2. **Focus on Critical Clauses:** Pay special attention to clauses, terms, or conditions that may be tricky, complex, or have significant legal or financial implications. Explain such clauses in detail. Highlight these clearly and explain why they are important, ensuring the user is fully aware of their potential impact.
+        3. **Handle General Clauses Efficiently:** For general clauses or terms that do not pose significant risks or complexities, you may merge similar clauses and provide a concise explanation. Reassure the user if there is nothing to worry about in these sections.
+        4. **Prioritize User Understanding:** Your primary goal is to make the contract as clear and accessible as possible for the user. Avoid legal jargon where unnecessary but retain technical accuracy.
 
-   here is the contract :
-   {contract_text}"""
+        Format as JSON array:
+        [
+            {{
+                "clause_title": "Title",
+                "description": "Detailed explanation about the clause with accurate technicality"
+            }}
+        ]
+        Provide only the JSON output and nothing else.
 
-    try:
-        response = client.chat.completions.create(
-            model='Meta-Llama-3.1-405B-Instruct',
-            messages=[{"role": "user", "content": analysis_prompt}],
-            temperature=0.1
-        )
-        return json.loads(response.choices[0].message.content)
-    except Exception as e:
-        st.error("Failed to analyze contract content")
-        return []
+        Here is the contract:
+        {contract_text}"""
+
+    while retries < max_retries:
+        try:
+            response = client.chat.completions.create(
+                model='Meta-Llama-3.1-405B-Instruct',
+                messages=[{"role": "user", "content": analysis_prompt}],
+                temperature=0.1
+            )
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            retries += 1
+            if retries < max_retries:
+                time.sleep(10)  # Wait before retrying
+            else:
+                st.error("Failed to analyze contract content after multiple retries.")
+                return []
 
 def generate_email(clauses,responses):
     if not responses or not clauses:
         return ""
-
+    
     decisions = []
     for clause in clauses:
         clause_id = str(hash(clause['clause_title']))
@@ -129,18 +141,18 @@ def generate_email(clauses,responses):
             decisions.append(decision)
 
     prompt = f"""Generate a formal contract review email based on these decisions:
-{json.dumps(decisions, indent=2)}
+    {json.dumps(decisions, indent=2)}
 
 Include:
 1. Professional introduction
-2. Accepted terms
-3. Terms requiring modification with counter-proposals
-4. Rejected terms
+2. detail on which  clauses are accepted. no need of any reason.
+3. detail on which of the clauses are countered. and the counter being the counter proposal for that clause.explain the counter proposal.
+4. detail on Rejected terms and clauses. 
 5. Next steps"""
 
     try:
         response = client.chat.completions.create(
-            model='Meta-Llama-3.1-70B-Instruct',
+            model='Meta-Llama-3.1-405B-Instruct',
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1
         )
@@ -164,16 +176,33 @@ def main():
     if uploaded_file:
         # Analyze button
         if st.button("Analyze Contract"):
-            with st.spinner("Processing contract..."):
+            with st.spinner("Analyzing your contract ..."):
                 images = convert_pdf_to_images(uploaded_file)
-                
-                if images:
-                    contract_text = extract_contract_content(images)
-                    print(contract_text)
+                batch_size = 5  # Size of each batch
+                overlap = 1     # Overlap size (number of images reused in the next batch)
+                st.session_state.clauses = []  # Initialize list to store all clauses
+
+                start = 0
+                while start < len(images):
+                    batch = images[start:start + batch_size]
+                    if not batch:  # Skip empty batches
+                        break
+
+                    contract_text = ""
+                    for img in batch:
+                        content = extract_contract_content(img)
+                        if content:
+                            contract_text += "\n" + content
+
                     if contract_text:
-                        st.session_state.clauses = analyze_contract_content(contract_text)
-                        st.session_state.processing_complete = True
-                        st.rerun()
+                        clauses = analyze_contract_content(contract_text)
+                        st.session_state.clauses.extend(clauses)
+
+                    start += batch_size - overlap
+
+                # Mark processing complete
+                st.session_state.processing_complete = True
+                st.rerun()
 
     # Display clauses and analysis
     if st.session_state.processing_complete:
