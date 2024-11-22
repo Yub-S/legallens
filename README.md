@@ -39,9 +39,10 @@
 
 3. Make sure you have the necessary API keys set up in the `.env` file.
 
-```bash
-SAMBANOVA_API_KEY="your_sambanova_api_key"
-SERPER_API_KEY="your_serper_api_key"
+   ```bash
+   SAMBANOVA_API_KEY="your_sambanova_api_key"
+   SERPER_API_KEY="your_serper_api_key"
+    ```
 
 4. Run the app using Streamlit:
     ```bash
