@@ -1,6 +1,5 @@
 # LegalLens
 
-## 📝 Introduction
 **LegalLens** is an agentic application that helps users understand and analyze their long legal contracts. It explains every clause in simple, understandable terms, verifies the legality of each clause, and suggests modifications or counteractions where necessary. Whether you're an individual, startup, or legal professional, LegalLens ensures nothing important slips through the cracks before signing a contract.
 
 ## ⚙️ How It Works
