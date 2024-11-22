@@ -46,7 +46,7 @@
 
 4. Run the app using Streamlit:
     ```bash
-    streamlit run app.py
+    streamlit run legallens.py
     ```
 
 
