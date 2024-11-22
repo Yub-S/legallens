@@ -26,28 +26,26 @@
 
 ## 🛠️ How to Run It Locally
 
-### Requirements
-
-- Install all dependencies listed in `requirements.txt`:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-### Running the Application
 1. Clone the repository:
     ```bash
     git clone https://github.com/Yub-S/legallens.git
     cd legallens
     ```
 
-2. Run the app using Streamlit:
+2. Install all dependencies listed in `requirements.txt`:
     ```bash
-    streamlit run app.py
+    pip install -r requirements.txt
     ```
 
 3. Make sure you have the necessary API keys set up in the `.env` file.
 
-### .env File Format
 ```bash
 SAMBANOVA_API_KEY="your_sambanova_api_key"
 SERPER_API_KEY="your_serper_api_key"
+
+4. Run the app using Streamlit:
+    ```bash
+    streamlit run app.py
+    ```
+
+
