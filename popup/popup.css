@@ -147,3 +147,34 @@ button:disabled {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.risky-clause {
+    margin-bottom: 16px;
+    padding: 16px;
+    background-color: #fff5f5;
+    border-radius: 8px;
+    border-left: 4px solid #ff7675;
+}
+
+.risky-clause h3 {
+    color: #d63031;
+    font-size: 16px;
+    margin: 0 0 8px 0;
+}
+
+.risky-clause p {
+    color: #636e72;
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.summary-text {
+    color: #2d3436;
+    line-height: 1.8;
+    font-size: 15px;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #00b894;
+}

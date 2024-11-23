@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Legal Lens",
+  "name": "T&C Checker",
   "version": "1.0.0",
   "description": "Analyzes Terms and Conditions to help users understand what they're agreeing to",
   "permissions": [

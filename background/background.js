@@ -1,14 +1,18 @@
-// Store your API key securely
-// Note: In production, you should implement proper key management
-const API_KEY = 'f2844e54-1e58-4b6a-b6f5-7de64c693b38';
+const API_KEY = "f2844e54-1e58-4b6a-b6f5-7de64c693b38";
 const API_URL = 'https://api.sambanova.ai/v1/chat/completions';
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'analyzeTerms') {
         analyzeTerms(request.terms)
-            .then(response => sendResponse(response))
-            .catch(error => sendResponse({ error: error.message }));
+            .then(response => {
+                console.log('API Response:', response); // Debug log
+                sendResponse(response);
+            })
+            .catch(error => {
+                console.error('Analysis Error:', error); // Debug log
+                sendResponse({ error: error.message });
+            });
         return true; // Required for async response
     }
 });
@@ -25,21 +29,42 @@ async function analyzeTerms(termsText) {
                 model: 'Meta-Llama-3.1-405B-Instruct',
                 messages: [{
                     role: 'user',
-                    content: `here is a term and condition that the user is about to sign.
+                    content: `Analyze these terms and conditions carefully and respond in JSON format:
                     ${termsText}
 
-                    Your job is to scan this and explain the user what's in it keeping everything concise and without leaving anything. 
-                    your explanation should be like it's mentioned that you agree to .....(in simple and understandable way so that user don't need to read the entire term and condition.)
-                    you are like a careful blocker or assistant that prevents the users from signing any harmful terms and condition.
+                    Your role is to identify potentially harmful or unusual terms and explain their real-world implications in simple language.
 
-                    before the explanation you should point out any sneaky/highly risky/some terms and conditions that are not relevant in any sense, and list them. 
-                    and give explanation of what's the term and condition contains. without making it long.
+                    Create a JSON response with exactly this structure:
+                    {
+                        "riskyClauses": [
+                            {
+                                "impact": "Direct statement of what this means for the user in practical terms, focusing on consequences and risks"
+                            }
+                        ],
+                        "summary": "A concise overview of what users are agreeing to in plain language, focusing on practical effects of all the other GENERAL terms and conditions (not risky one as we already mentioned them above)."
+                    }
 
-                    if you have mentioned any term and condition up in the concerning section , no need to do it down. so it's better to categorize it into multiple section.
-                    1. concerning and risky and 2. general.
-                    each one would have what's written in the term and condition . and then the what it means in detail but concise.
+                    Guidelines:
+                    - Focus ONLY on identifying terms that:
+                      * Could have unexpected consequences for users
+                      * Involve financial risks or obligations
+                      * Affect user rights or property
+                      * Give unusual powers to the service provider
+                      * Are not standard in typical terms
+                    - For each risky clause:
+                      * Skip the legal language completely
+                      * State only the practical impact
+                      * Use direct, consequence-focused language
+                      * Explain why users should care
+                    - Keep language simple and conversational
+                    - Ensure the output is valid JSON
+                    
+                    Example impacts:
+                    BAD: "You agree to grant unlimited usage rights to your content"
+                    GOOD: "The company can use all your uploaded content however they want without paying you or asking permission"
 
-                    respond it in a markdown.`
+                    BAD: "You consent to automatic payment processing"
+                    GOOD: "They can automatically charge your card without asking you first"`
                 }],
                 temperature: 0.1
             })
@@ -50,7 +75,25 @@ async function analyzeTerms(termsText) {
         }
 
         const data = await response.json();
-        return data.choices[0].message.content;
+        let parsedContent;
+        
+        try {
+            parsedContent = JSON.parse(data.choices[0].message.content);
+        } catch (parseError) {
+            const jsonMatch = data.choices[0].message.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsedContent = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Failed to parse LLM response as JSON');
+            }
+        }
+
+        // Validate expected structure
+        if (!parsedContent.riskyClauses || !parsedContent.summary) {
+            throw new Error('Invalid response structure from LLM');
+        }
+
+        return parsedContent;
     } catch (error) {
         console.error('API Error:', error);
         throw new Error('Failed to analyze terms and conditions');

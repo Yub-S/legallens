@@ -2,13 +2,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const analyzeButton = document.getElementById('analyzeButton');
     const statusDiv = document.getElementById('status');
     const resultsDiv = document.getElementById('results');
-    const concerningTermsDiv = document.getElementById('concerningTerms').querySelector('.content');
-    const generalTermsDiv = document.getElementById('generalTerms').querySelector('.content');
+    const loadingSpinner = document.querySelector('.loading');
 
     analyzeButton.addEventListener('click', async function() {
         // Update UI to show processing state
         analyzeButton.disabled = true;
         statusDiv.textContent = 'Analyzing terms and conditions...';
+        loadingSpinner.style.display = 'inline-block';
         resultsDiv.style.display = 'none';
         
         try {
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } catch (injectionError) {
                 console.log('Content script already loaded or injection failed:', injectionError);
-                // Continue execution as the script might already be loaded
             }
 
             // Add a small delay to ensure content script is ready
@@ -47,49 +46,62 @@ document.addEventListener('DOMContentLoaded', function() {
                     terms: response.termsText
                 });
 
-                // Parse the markdown response
-                const sections = parseAnalysisResponse(analysis);
-                
-                // Display results
-                concerningTermsDiv.innerHTML = sections.concerning || 'No concerning terms found.';
-                generalTermsDiv.innerHTML = sections.general || 'No general terms found.';
-                resultsDiv.style.display = 'block';
+                // Display the results
+                displayResults(analysis);
                 statusDiv.textContent = 'Analysis complete!';
             } else {
-                statusDiv.textContent = 'No terms and conditions found on this page.';
+                throw new Error('No terms and conditions found on this page. Please select the text manually.');
             }
         } catch (error) {
             statusDiv.textContent = 'Error: ' + error.message;
             console.error('Error:', error);
         } finally {
             analyzeButton.disabled = false;
+            loadingSpinner.style.display = 'none';
         }
     });
 
-    function parseAnalysisResponse(markdownText) {
-        const sections = {
-            concerning: '',
-            general: ''
-        };
-
-        // Simple markdown parsing
-        const lines = markdownText.split('\n');
-        let currentSection = null;
-
-        for (const line of lines) {
-            if (line.toLowerCase().includes('concerning and risky')) {
-                currentSection = 'concerning';
-                continue;
-            } else if (line.toLowerCase().includes('general')) {
-                currentSection = 'general';
-                continue;
-            }
-
-            if (currentSection && line.trim()) {
-                sections[currentSection] += line + '<br>';
-            }
+    function displayResults(analysis) {
+        const riskySectionDiv = document.getElementById('concerningTerms');
+        const generalSectionDiv = document.getElementById('generalTerms');
+        
+        // Update section titles with warning icons
+        riskySectionDiv.querySelector('h2').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Watch Out For These';
+        generalSectionDiv.querySelector('h2').innerHTML = '<i class="fas fa-clipboard-list"></i> What You\'re Agreeing To';
+        
+        // Display risky clauses
+        const riskyContent = riskySectionDiv.querySelector('.content');
+        riskyContent.innerHTML = '';
+        
+        if (analysis.riskyClauses && analysis.riskyClauses.length > 0) {
+            analysis.riskyClauses.forEach(item => {
+                const clauseDiv = document.createElement('div');
+                clauseDiv.className = 'risky-clause';
+                clauseDiv.innerHTML = `<p class="clause-impact">${item.impact}</p>`;
+                riskyContent.appendChild(clauseDiv);
+            });
+        } else {
+            riskyContent.innerHTML = '<div class="risky-clause"><p>No unusual or concerning terms found.</p></div>';
         }
-
-        return sections;
+        
+        // Display summary
+        const generalContent = generalSectionDiv.querySelector('.content');
+        generalContent.innerHTML = `<div class="summary-text">${analysis.summary || 'No summary available'}</div>`;
+        
+        // Show results
+        resultsDiv.style.display = 'block';
     }
+
+    // Initialize popup state
+    function initializePopup() {
+        statusDiv.textContent = 'Select terms and conditions text and Click \'Analyze\' .';
+        loadingSpinner.style.display = 'none';
+        resultsDiv.style.display = 'none';
+        analyzeButton.disabled = false;
+    }
+
+    // Call initialization
+    initializePopup();
 });
+
+
