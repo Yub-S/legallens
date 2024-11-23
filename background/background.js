@@ -1,4 +1,4 @@
-const API_KEY = "f2844e54-1e58-4b6a-b6f5-7de64c693b38";
+const API_KEY = "your sambanova api key";
 const API_URL = 'https://api.sambanova.ai/v1/chat/completions';
 
 // Listen for messages from popup
