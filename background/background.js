@@ -1,5 +1,12 @@
-const API_KEY = "your sambanova api key";
-const API_URL = 'https://api.sambanova.ai/v1/chat/completions';
+// background.js
+import config from '../config.js';
+
+const API_KEY = config.API_KEY;
+const API_URL = config.API_URL;
+
+
+// const API_KEY = "f2844e54-1e58-4b6a-b6f5-7de64c693b38";
+// const API_URL = 'https://api.sambanova.ai/v1/chat/completions';
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -41,7 +48,7 @@ async function analyzeTerms(termsText) {
                                 "impact": "Direct statement of what this means for the user in practical terms, focusing on consequences and risks"
                             }
                         ],
-                        "summary": "A concise overview of what users are agreeing to in plain language, focusing on practical effects of all the other GENERAL terms and conditions (not risky one as we already mentioned them above)."
+                        "summary": "A concise summary of entire term and condition like what it contains in a simple, easy and understandable way. Not that much long just couple of sentences."
                     }
 
                     Guidelines:
