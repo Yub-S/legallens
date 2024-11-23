@@ -22,6 +22,9 @@
 
 5. **User Decision**:
    - The user can accept, reject, or counter each clause based on the AI’s analysis and recommendations.
+  
+6. **Quick Summary**:
+   - Apart from getting detailed analysis of their contract, they also have an option to get the quick summary of all the important and serious clauses that they donot like to miss.
 
 ## 🛠️ How to Run It Locally
 
