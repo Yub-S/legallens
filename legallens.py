@@ -1,3 +1,4 @@
+
 import streamlit as st
 import openai
 import fitz
@@ -14,6 +15,7 @@ from crew import manage_crew_for_clause
 load_dotenv()
 
 # Initialize session state
+# Initialize session state
 if 'responses' not in st.session_state:
     st.session_state.responses = {}
 if 'generated_email' not in st.session_state:
@@ -22,10 +24,14 @@ if 'processing_complete' not in st.session_state:
     st.session_state.processing_complete = False
 if 'clauses' not in st.session_state:
     st.session_state.clauses = []
+if 'summary_clauses' not in st.session_state:
+    st.session_state.summary_clauses = []
 if 'show_email' not in st.session_state:
     st.session_state.show_email = False
 if 'contract_finalized' not in st.session_state:
     st.session_state.contract_finalized = False
+if 'analysis_mode' not in st.session_state:
+    st.session_state.analysis_mode = None
 
 api_key = os.environ.get("SAMBANOVA_API_KEY")
 base_url = "https://api.sambanova.ai/v1"
@@ -129,7 +135,7 @@ Here is the contract:
     while retries < max_retries:
         try:
             response = client.chat.completions.create(
-                model='Meta-Llama-3.1-405B-Instruct',
+                model='Meta-Llama-3.1-70B-Instruct',
                 messages=[{"role": "user", "content": analysis_prompt}],
                 temperature=0.1
             )
@@ -140,6 +146,53 @@ Here is the contract:
                 time.sleep(2)  # Wait before retrying
             else:
                 st.error("Failed to analyze contract content after multiple retries.")
+                return []
+            
+def summarize_contract_content(contract_text):
+    max_retries = 20
+    retries = 0
+
+    summary_prompt = f"""
+Analyze this contract section and identify ONLY the potentially risky, sneaky, or serious clauses that the user should be aware of. Focus on clauses that:
+
+1. Have significant financial implications
+2. Restrict future opportunities or actions
+3. Create binding long-term commitments
+4. Have unusual or potentially unfair terms
+5. Contain hidden obligations or penalties
+
+For each identified serious clause, provide:
+1. A topic that clearly indicates what the clause is about
+2. A clear 2-3 sentence description that explains both what the clause means and its practical implications in everyday language. Focus on what exactly is written in the contract and how it will affect the user.
+
+Format as JSON array:
+[
+    {{
+        "topic": "Clear topic of the clause",
+        "description": "2-3 sentences explaining what the clause means and its implications in simple terms referencing to the user like this, you will not or you agree to or you will(if suitable)........"
+    }}
+]
+
+Only include clauses that have significant implications. Skip standard, non-controversial clauses.
+If no serious clauses are found, return an empty array.
+
+Here is the contract section:
+{contract_text}"""
+
+    while retries < max_retries:
+        try:
+            response = client.chat.completions.create(
+                model='Meta-Llama-3.1-70B-Instruct',
+                messages=[{"role": "user", "content": summary_prompt}],
+                temperature=0.1
+            )
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            retries += 1
+            if retries < max_retries:
+                time.sleep(2)
+            else:
+                st.error("Failed to summarize contract content after multiple retries.")
                 return []
 
 def generate_email(clauses, responses):
@@ -190,22 +243,33 @@ def update_response(clause_id, response_type, counter_text=''):
 def main():
     st.title("LegalLens")
     
-    # File upload
     uploaded_file = st.file_uploader("Upload Contract (PDF)", type="pdf")
     
     if uploaded_file:
-        # Analyze button
-        if st.button("Analyze Contract"):
-            with st.spinner("Analyzing your contract ..."):
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Detailed Analysis"):
+                st.session_state.analysis_mode = "detailed"
+                st.session_state.processing_complete = False
+                st.session_state.clauses = []
+                st.rerun()
+        with col2:
+            if st.button("Quick Summary"):
+                st.session_state.analysis_mode = "summary"
+                st.session_state.processing_complete = False
+                st.session_state.summary_clauses = []
+                st.rerun()
+
+        if st.session_state.analysis_mode and not st.session_state.processing_complete:
+            with st.spinner("Analyzing your contract..." if st.session_state.analysis_mode == "detailed" else "Finding important clauses..."):
                 images = convert_pdf_to_images(uploaded_file)
-                batch_size = 5  # Size of each batch
-                overlap = 1     # Overlap size (number of images reused in the next batch)
-                st.session_state.clauses = []  # Initialize list to store all clauses
+                batch_size = 5
+                overlap = 1
 
                 start = 0
                 while start < len(images):
                     batch = images[start:start + batch_size]
-                    if not batch:  # Skip empty batches
+                    if not batch:
                         break
 
                     contract_text = ""
@@ -213,82 +277,93 @@ def main():
                         content = extract_contract_content(img)
                         if content:
                             contract_text += "\n" + content
-                    if contract_text:
-                        new_clauses = analyze_contract_content(contract_text)
 
-                        # Check for duplicates and add only new clauses
-                        for new_clause in new_clauses:
+                    if contract_text:
+
+                        if st.session_state.analysis_mode == "detailed":
+                            new_clauses = analyze_contract_content(contract_text)
                             existing_titles = [clause['clause_title'] for clause in st.session_state.clauses]
-                            if new_clause['clause_title'] not in existing_titles:
-                                st.session_state.clauses.append(new_clause)
+                            for new_clause in new_clauses:
+                                if new_clause['clause_title'] not in existing_titles:
+                                    st.session_state.clauses.append(new_clause)
+
+                        else:  # summary mode
+                            summary_clauses = summarize_contract_content(contract_text)
+                            # Avoid duplicates based on descriptions
+                            existing_descriptions = [clause['description'] for clause in st.session_state.summary_clauses]
+                            for clause in summary_clauses:
+                                if clause['description'] not in existing_descriptions:
+                                    st.session_state.summary_clauses.append(clause)
 
                     start += batch_size - overlap
 
-                # Mark processing complete
                 st.session_state.processing_complete = True
                 st.rerun()
 
-    # Display clauses and analysis
+    # Display results based on mode
     if st.session_state.processing_complete:
+        if st.session_state.analysis_mode == "detailed":
+            # [Previous detailed analysis display code remains the same]
+            for idx, clause in enumerate(st.session_state.clauses):
+                clause_id = str(hash(clause['clause_title']))
+                
+                st.markdown(f"### Clause {idx + 1}: {clause['clause_title']}")
+                st.markdown(clause['description'])
+                
+                #crew analysis
+                if clause_id not in st.session_state:
+                    st.session_state[clause_id] = {}
 
-        for idx, clause in enumerate(st.session_state.clauses):
-            clause_id = str(hash(clause['clause_title']))
+                if 'implications' not in st.session_state[clause_id]:
+                    with st.spinner("Analyzing implications..."):
+                        analysis = manage_crew_for_clause(clause['description'])
+                        st.session_state[clause_id]['implications'] = analysis.raw
 
-            st.markdown(f"### Clause {idx + 1}: {clause['clause_title']}")
-            st.markdown(clause['description'])
+                st.write(st.session_state[clause_id]['implications'])
 
-            # Get crew analysis if not already present
-            if clause_id not in st.session_state:
-                st.session_state[clause_id] = {}
-
-            if 'implications' not in st.session_state[clause_id]:
-                with st.spinner("Analyzing implications..."):
-                    analysis = manage_crew_for_clause(clause['description'])
-                    st.session_state[clause_id]['implications'] = analysis.raw
-
-            # Display the implications
-            st.write(st.session_state[clause_id]['implications'])
-
-            # Response options
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                response_type = st.radio(
-                    "Your Decision",
-                    ["Accept", "Reject", "Counter"],
-                    key=f"response_{clause_id}_{idx}",  # Ensure uniqueness
-                )
-                # Update the session state based on user selection
-                update_response(clause_id, response_type)
-
-            with col2:
-                if response_type == "Counter":
-                    counter_text = st.text_area(
-                        "Counter Proposal",
-                        key=f"counter_{clause_id}_{idx}",
-                        value=st.session_state['responses'].get(clause_id, {}).get('counter_text', '')
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    response_type = st.radio(
+                        "Your Decision",
+                        ["Accept", "Reject", "Counter"],
+                        key=f"response_{clause_id}_{idx}",
                     )
-                    # Update the session state when counter proposal is entered
-                    update_response(clause_id, response_type, counter_text)
+                    update_response(clause_id, response_type)
 
-            st.markdown("---")
+                with col2:
+                    if response_type == "Counter":
+                        counter_text = st.text_area(
+                            "Counter Proposal",
+                            key=f"counter_{clause_id}_{idx}",
+                            value=st.session_state['responses'].get(clause_id, {}).get('counter_text', '')
+                        )
+                        update_response(clause_id, response_type, counter_text)
 
-        # Finalize contract 
-        if st.button("Finalize Contract"):
-            with st.spinner("Generating final response..."):
-                email = generate_email(st.session_state.clauses, st.session_state.responses)
-                st.session_state.generated_email = email
-                st.session_state.show_email = True
+                st.markdown("---")
 
-        # Display generated email
-        if st.session_state.show_email and st.session_state.generated_email:
-            st.markdown("### Generated Response Email")
-            st.text_area("", st.session_state.generated_email, height=400)
+            if st.button("Finalize Contract"):
+                with st.spinner("Generating final response..."):
+                    email = generate_email(st.session_state.clauses, st.session_state.responses)
+                    st.session_state.generated_email = email
+                    st.session_state.show_email = True
 
-            # new project
-            if st.button("New Project / New Contract"):
-                st.session_state.clear()    
-                st.rerun()  
+            if st.session_state.show_email and st.session_state.generated_email:
+                st.markdown("### Generated Response Email")
+                st.text_area("", st.session_state.generated_email, height=400)
 
+        else:  # summary mode
+            st.markdown("## Important Clauses to Review")
+            if not st.session_state.summary_clauses:
+                st.info("No potentially risky clauses found in this contract section.")
+            else:
+                for clause in st.session_state.summary_clauses:
+                    st.markdown(f"### {clause['topic']}")
+                    st.write(clause['description'])
+                    st.markdown("---")
+
+        if st.button("New Project / New Contract"):
+            st.session_state.clear()
+            st.rerun()
 
 if __name__ == "__main__":
     main()
