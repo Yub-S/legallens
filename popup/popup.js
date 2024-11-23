@@ -15,10 +15,32 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get the active tab
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             
-            // Request the text content from the content script
-            const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTermsAndConditions' });
+            // Check if we can inject content script into this tab
+            if (!tab || !tab.url || tab.url.startsWith('chrome://')) {
+                throw new Error('Cannot analyze terms on this page. Please try on a regular webpage.');
+            }
+
+            // Inject content script manually to ensure it's loaded
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['content/content.js']
+                });
+            } catch (injectionError) {
+                console.log('Content script already loaded or injection failed:', injectionError);
+                // Continue execution as the script might already be loaded
+            }
+
+            // Add a small delay to ensure content script is ready
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            if (response.termsText) {
+            // Request the text content from the content script
+            const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTermsAndConditions' })
+                .catch(error => {
+                    throw new Error('Failed to communicate with the page. Please refresh and try again.');
+                });
+            
+            if (response && response.termsText) {
                 // Send to background script for API processing
                 const analysis = await chrome.runtime.sendMessage({
                     action: 'analyzeTerms',
