@@ -5,4 +5,4 @@ Pillow
 python-dotenv
 crewai
 crewai-tools
-
+pysqlite3-binary 
