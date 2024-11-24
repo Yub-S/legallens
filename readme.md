@@ -47,12 +47,12 @@ export default config;
 2. Select the text you want to analyze
 3. Click on the Legal Lens extension icon in your browser
 4. Click the "Analyze" button
-5. Review the AI-powered analysis of the selected text
+5. Review the any sneaky/serious terms in that Terms and conditions.
 
 ## Project Structure
 
 ```
-legal-lens/
+legallens/
 ├── manifest.json
 ├── config.js          
 ├── popup/
