@@ -38,7 +38,7 @@ export default config;
 2. Type `chrome://extensions/` in the address bar
 3. Enable "Developer mode" in the top right corner
 4. Click "Load unpacked"
-5. Browse to the legal-lens folder and select it
+5. Browse to the legallens folder and select it
 6. The extension icon should appear in your browser toolbar
 
 ## How to Use
