@@ -1,6 +1,6 @@
 # Legal Lens 🔍
 
-Legal Lens is a browser extension that helps users understand Terms & Conditions easily. Select any text from Terms & Conditions on any webpage, click the extension, and get an AI-powered analysis of potential risks and important points.
+LegalLens T&C Checker is a browser extension that helps users understand Terms & Conditions easily. Select any text from Terms & Conditions on any webpage, click the extension, and get an AI-powered analysis of potential risks and important points in seconds.
 
 ## Features 
 
