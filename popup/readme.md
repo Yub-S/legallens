@@ -14,7 +14,7 @@ Legal Lens is a browser extension that helps users understand Terms & Conditions
 ### 1. Get the Code
 
 ```bash
-git clone [your-repository-url]
+git clone https://github.com/Yub-S/legallens.git
 cd legal-lens
 git checkout extension_branch
 ```
