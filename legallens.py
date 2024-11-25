@@ -135,7 +135,7 @@ Here is the contract:
     while retries < max_retries:
         try:
             response = client.chat.completions.create(
-                model='Meta-Llama-3.1-70B-Instruct',
+                model='Meta-Llama-3.1-405B-Instruct',
                 messages=[{"role": "user", "content": analysis_prompt}],
                 temperature=0.1
             )
@@ -182,7 +182,7 @@ Here is the contract section:
     while retries < max_retries:
         try:
             response = client.chat.completions.create(
-                model='Meta-Llama-3.1-70B-Instruct',
+                model='Meta-Llama-3.1-405B-Instruct',
                 messages=[{"role": "user", "content": summary_prompt}],
                 temperature=0.1
             )
