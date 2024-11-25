@@ -51,4 +51,6 @@
     streamlit run legallens.py
     ```
 
+**Important:**  
+The core LegalLens project resides in the **main branch**, while the **extension branch** contains the **LegalLens T&C Checker Extension**.
 
